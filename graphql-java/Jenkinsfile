@@ -1,0 +1,64 @@
+pipeline {
+    // agent any
+    agent {
+        label 'ssh-agent-161'
+    }
+    environment { //环境变量
+		GREETING="Hello"
+		TITLE = "Jenkins"
+// 		VERSION = 'master.1.0'
+    }
+     stages{
+        stage('say hi') {
+            steps{
+            	sh 'echo "$GREETING $TITLE"'
+            }
+        }
+        stage('check environment') {
+            steps {
+                sh 'echo "-----------------------------------" '
+                sh 'pwd'
+                sh 'ls -lrt '
+                sh 'mvn -version'
+                sh 'printenv'
+            }
+        }
+        stage('clean & build') {
+            steps {
+                sh 'mvn clean && mvn compile'
+            }
+        }
+        stage('test & package') {
+            steps {
+                sh 'mvn test && mvn package -Dreversion=$VERSION'
+                sh 'cd target && ls -al'
+            }
+        }
+
+     }
+
+    post { //构建完成后置操作
+        always {
+            echo 'This will always run'
+            junit ( testResults: '**/surefire-reports/**/*.xml' )
+            deleteDir()
+        }
+        aborted {
+            echo 'build aborted!'
+        }
+        success {
+            echo 'biuld successfullyThis will run only if successful!'
+        }
+       failure {
+           echo 'This will run only if failed'
+       }
+        unstable {
+            echo 'This will run only if the run was marked as unstable'
+        }
+        changed {
+            echo 'This will run only if the state of the Pipeline has changed'
+            echo 'For example, if the Pipeline was previously failing but is now successful'
+        }
+    }
+
+}
