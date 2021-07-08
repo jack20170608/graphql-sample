@@ -1,7 +1,5 @@
 package com.jack.graphql.utils;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;

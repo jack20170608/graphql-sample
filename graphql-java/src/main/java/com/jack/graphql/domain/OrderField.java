@@ -1,6 +1,11 @@
 package com.jack.graphql.domain;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public enum OrderField {
+
 
     id("ID", 0)
     , sequenceNo("SEQUENCE_NO", 1)
@@ -30,4 +35,6 @@ public enum OrderField {
     public int getIndex() {
         return index;
     }
+
+    public static List<OrderField> ALL_FIELDS = Arrays.stream(OrderField.values()).collect(Collectors.toList());
 }

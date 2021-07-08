@@ -41,11 +41,14 @@ public class OrderQueryDto implements Serializable {
     private int pageNum = 1;
     //Used to cache the query result
     private String queryKey;
+    //identify to the if need to cache the cache result
+    private boolean cacheQueryResult;
 
     public OrderQueryDto() {
     }
 
-    public OrderQueryDto(String sequenceNo, Collection<Long> customerIds, Collection<Long> productIds, LocalDateTime orderDateTimeMin, LocalDateTime orderDateTimeMax, Set<Status> statusSet, List<OrderField> orderFieldList, int pageSize, int pageNum, String queryKey) {
+    public OrderQueryDto(String sequenceNo, Collection<Long> customerIds, Collection<Long> productIds, LocalDateTime orderDateTimeMin, LocalDateTime orderDateTimeMax, Set<Status> statusSet, List<OrderField> orderFieldList, int pageSize, int pageNum
+        , String queryKey, boolean cacheQueryResult) {
         this.sequenceNo = sequenceNo;
         this.customerIds = customerIds;
         this.productIds = productIds;
@@ -56,6 +59,7 @@ public class OrderQueryDto implements Serializable {
         this.pageSize = pageSize;
         this.pageNum = pageNum;
         this.queryKey = queryKey;
+        this.cacheQueryResult = cacheQueryResult;
     }
 
     public String getSequenceNo() {
@@ -135,6 +139,18 @@ public class OrderQueryDto implements Serializable {
 
     public String getQueryKey() {
         return queryKey;
+    }
+
+    public void setQueryKey(String queryKey) {
+        this.queryKey = queryKey;
+    }
+
+    public boolean isCacheQueryResult() {
+        return cacheQueryResult;
+    }
+
+    public void setCacheQueryResult(boolean cacheQueryResult) {
+        this.cacheQueryResult = cacheQueryResult;
     }
 
     @Override

@@ -7,6 +7,8 @@ import org.jdbi.v3.core.Jdbi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
+
 public final class PostgresDataSourceFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PostgresDataSourceFactory.class);

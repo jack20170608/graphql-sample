@@ -1,7 +1,8 @@
 package com.jack.graphql.dao.impl;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.jack.graphql.application.PostgresDataSourceFactory;
+import com.jack.graphql.cache.Cache;
 import com.jack.graphql.dao.OrderDao;
 import com.jack.graphql.domain.Order;
 import com.jack.graphql.domain.OrderBuilder;
@@ -15,14 +16,17 @@ import org.jdbi.v3.core.statement.PreparedBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.GET;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.jack.graphql.utils.LocalDateUtils.toLocalDateTime;
 import static com.jack.graphql.utils.StringConvertUtils.toEnum;
@@ -77,18 +81,26 @@ public class OrderDaoImpl implements OrderDao {
         ", last_update_dt" +
         ", raw_string" +
         " from t_order " +
-        " where 1 = 1 "
-//        " where 1 = 1 limit 10000 offset 0"
-        ;
+        " where 1 = 1 ";
+
+    private static final String GET_MIN_ID = "" +
+        " select min(id) maxId" +
+        " from t_order " +
+        " where 1 = 1 ";
+
+    private static final String GET_MAX_ID = "" +
+        " select max(id) maxId" +
+        " from t_order " +
+        " where 1 = 1 ";
 
     private final Jdbi jdbi;
 
     private static final List<Long> CUSTOMER_TABLE = Lists.newArrayList(1L, 2L, 3L, 4L);
     private static final List<Long> PRODUCT_TABLE = Lists.newArrayList(1L, 2L, 3L, 5L, 6L, 7L, 8L, 9L, 10L);
 
-    private void initData(int dataSize){
+    private void initData(int dataSize) {
         List<Order> orderList = Lists.newArrayList();
-        for (long i = 0; i < dataSize ; i++) {
+        for (long i = 0; i < dataSize; i++) {
             String[] rawString = new String[12];
             String sequenceNo = IdGenerator.getNextId();
             Long customerId = CUSTOMER_TABLE.get(RandomUtils.nextInt(0, 3));
@@ -127,7 +139,7 @@ public class OrderDaoImpl implements OrderDao {
                 .build()
             );
 
-            if (i % 1000 == 0){
+            if (i % 1000 == 0) {
                 batchInsert(orderList);
                 LOGGER.info("complete {}.", i);
                 orderList.clear();
@@ -189,6 +201,108 @@ public class OrderDaoImpl implements OrderDao {
         return jdbi.withHandle(handle -> handle.createQuery(GET_ALL)
             .mapTo(Order.class)
             .list());
+    }
+
+    @Override
+    public Collection<Order> getByIdRange(Long minId, Long maxId) {
+        String sql = GET_ALL
+            + " and id >= :minId"
+            + " and id < :maxId ";
+        return jdbi.withHandle(handle -> handle.createQuery(sql)
+            .bind("minId", minId)
+            .bind("maxId", maxId)
+            .mapTo(Order.class)
+            .list());
+    }
+
+    //Not work
+    @Override
+    public int loadingDataToCacheStream(Cache<Long, Order> cache){
+        AtomicInteger counter = new AtomicInteger(0);
+        String sql = GET_ALL + " and id > :id ";
+        jdbi.useHandle(handle -> {
+            handle.createQuery(sql)
+                .bind("id", 100)
+                .mapTo(Order.class)
+                .useStream(stream -> {
+                    stream.forEach(order -> {
+                        counter.incrementAndGet();
+                        cache.put(order.getId(), order);
+                        if (counter.get() % 1000 == 0){
+                            LOGGER.info("Done {}.", counter.get());
+                        }
+                    });
+                });
+        });
+        LOGGER.info("Total size {}.", counter.get());
+        return counter.get();
+    }
+
+
+    @Override
+    public int loadingDataToCache(Cache<Long, Order> cache) {
+        Connection conn = null;
+        PreparedStatement preparedStatement = null;
+        ResultSet rs = null;
+        String sql = GET_ALL + " and id > ? ";
+        int totalSize = 0;
+        try {
+            conn = PostgresDataSourceFactory.getInstance().getHikariDataSource().getConnection();
+            conn.setAutoCommit(false);
+            preparedStatement = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            preparedStatement.setFetchSize(1000);
+            preparedStatement.setFetchDirection(ResultSet.FETCH_FORWARD);
+            preparedStatement.setLong(1, 100);
+            rs = preparedStatement.executeQuery();
+            while (rs.next()) {
+                Order order = OrderBuilder.anOrder()
+                    .withId(rs.getLong("id"))
+                    .withSequenceNo(rs.getString("sequence_no"))
+                    .withCustomerId(rs.getLong("customer_id"))
+                    .withProductId(rs.getLong("product_id"))
+                    .withOrderDatetime(toLocalDateTime(rs.getTimestamp("order_dt")))
+                    .withOrderStatus(toEnum(Status.class, rs.getString("status")))
+                    .withCreateDt(toLocalDateTime(rs.getTimestamp("create_dt")))
+                    .withLastUpdateDt(toLocalDateTime(rs.getTimestamp("last_update_dt")))
+                    .withRawString(rs.getString("raw_string").split("\\|"))
+                    .build();
+                cache.put(order.getId(), order);
+                if (totalSize++ % 1000 == 0) {
+                    LOGGER.info("Done {}.", totalSize);
+                }
+            }
+            LOGGER.info("Done all {}.", totalSize);
+        } catch (SQLException e) {
+            LOGGER.error("Loading error, ", e);
+            throw new RuntimeException("Data loading failure...", e);
+        } finally {
+            try {
+                if (rs != null){
+                    rs.close();
+                }
+                if (preparedStatement != null){
+                    preparedStatement.close();
+                }
+                if (null != conn) {
+                    conn.close();
+                }
+            }catch (SQLException ignore) {}
+        }
+        return totalSize;
+    }
+
+    @Override
+    public Optional<Long> getMinId() {
+        return jdbi.withHandle(handle -> handle.createQuery(GET_MIN_ID)
+            .mapTo(Long.class)
+            .findOne());
+    }
+
+    @Override
+    public Optional<Long> getMaxId() {
+        return jdbi.withHandle(handle -> handle.createQuery(GET_MAX_ID)
+            .mapTo(Long.class)
+            .findOne());
     }
 
     @Override

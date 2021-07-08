@@ -12,15 +12,17 @@ public class App {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
 
+    public static final String APP_NAME = "OrderService";
     public static AppContext APP_CONTEXT;
 
     private static void initAppContext(){
         LOGGER.info("Init app....");
         Config defaultConfig = ConfigFactory.parseResources("application.conf");
-        String env = System.getProperty("env");
+        String env = System.getProperty("ENV");
         Config specConfig = ConfigFactory.parseResources("application-" + env + ".conf");
 
         Config config = specConfig.withFallback(defaultConfig);
+
         APP_CONTEXT = new AppContext(config);
         APP_CONTEXT.init();
     }

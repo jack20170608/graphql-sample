@@ -1,27 +1,44 @@
 package com.jack.graphql.domain;
 
 import com.google.common.collect.Maps;
+import com.hazelcast.nio.serialization.Portable;
+import com.hazelcast.nio.serialization.PortableReader;
+import com.hazelcast.nio.serialization.PortableWriter;
 import com.jack.graphql.utils.CollectionUtils;
 import com.jack.graphql.utils.Constants;
+import com.jack.graphql.utils.LocalDateUtils;
+import com.jack.graphql.utils.StringConvertUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.*;
 
-public class Order implements Serializable, Comparable<Order> {
+import static com.jack.graphql.utils.StringConvertUtils.toEnum;
 
-    private final Long id;
-    private final String sequenceNo;
-    private final Long customerId;
-    private final Long productId;
-    private final LocalDateTime orderDatetime;
-    private final Status status;
+public class Order implements Serializable, Comparable<Order>, Portable {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Order.class);
+
+    private static final String DATETIME_PATTERN = "yyyy-MM-dd HH:mm:ss:SSS";
+
+    private Long id;
+    private String sequenceNo;
+    private Long customerId;
+    private Long productId;
+    private LocalDateTime orderDatetime;
+    private Status status;
 
 
-    private final LocalDateTime createDt;
-    private final LocalDateTime lastUpdateDt;
+    private LocalDateTime createDt;
+    private LocalDateTime lastUpdateDt;
 
-    private final String[] rawString;
+    private String[] rawString;
+
+    public Order() {
+    }
 
     public Order(Long id, String sequenceNo, Long customerId, Long productId, LocalDateTime orderDatetime, Status status, LocalDateTime createDt, LocalDateTime lastUpdateDt, String[] rawString) {
         this.id = id;
@@ -89,6 +106,7 @@ public class Order implements Serializable, Comparable<Order> {
         return Objects.hash(sequenceNo, customerId, productId);
     }
 
+
     public String getByFields(List<OrderField> orderFieldList) {
         if (CollectionUtils.isEmpty(orderFieldList)) {
             return null;
@@ -113,5 +131,43 @@ public class Order implements Serializable, Comparable<Order> {
     @Override
     public int compareTo(Order o) {
         return this.getId().compareTo(o.getId());
+    }
+
+    @Override
+    public int getFactoryId() {
+        return Constants.HAZELCAST_FACTORY_ID;
+    }
+
+    @Override
+    public int getClassId() {
+        return Constants.HAZELCAST_ORDER_OBJECT_ID;
+    }
+
+    @Override
+    public void writePortable(PortableWriter writer) throws IOException {
+        writer.writeLong(OrderField.id.name(), id);
+        writer.writeUTF(OrderField.sequenceNo.name(), sequenceNo);
+        writer.writeLong(OrderField.customerId.name(), customerId);
+        writer.writeLong(OrderField.productId.name(),  productId);
+        writer.writeUTF(OrderField.orderDatetime.name(), LocalDateUtils.format(orderDatetime, DATETIME_PATTERN));
+        writer.writeUTF(OrderField.status.name(), StringConvertUtils.toStr(status));
+        writer.writeUTF("createDt", LocalDateUtils.format(createDt, DATETIME_PATTERN));
+        writer.writeUTF("lastUpdateDt", LocalDateUtils.format(lastUpdateDt, DATETIME_PATTERN));
+        writer.writeUTFArray("rawString", rawString);
+    }
+
+    @Override
+    public void readPortable(PortableReader reader) throws IOException {
+        id = reader.readLong(OrderField.id.name());
+        sequenceNo = reader.readUTF(OrderField.sequenceNo.name());
+        customerId = reader.readLong(OrderField.customerId.name());
+        productId = reader.readLong(OrderField.productId.name());
+        orderDatetime = LocalDateUtils.parseLocalDateTime(reader.readUTF(OrderField.orderDatetime.name()) , DATETIME_PATTERN);
+        status= toEnum(Status.class, reader.readUTF(OrderField.status.name()));
+
+        createDt = LocalDateUtils.parseLocalDateTime(reader.readUTF("createDt") , DATETIME_PATTERN);
+        lastUpdateDt = LocalDateUtils.parseLocalDateTime(reader.readUTF("lastUpdateDt") , DATETIME_PATTERN);
+        rawString = reader.readUTFArray("rawString");
+
     }
 }

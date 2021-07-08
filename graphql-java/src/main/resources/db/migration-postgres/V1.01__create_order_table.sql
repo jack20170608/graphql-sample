@@ -1,10 +1,10 @@
 create table t_order(
     id INTEGER primary key,
-    sequence_no CHAR(50) NOT NULL,
+    sequence_no VARCHAR(50) NOT NULL,
     customer_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL ,
     order_dt TIMESTAMP ,
-    status CHAR(32),
+    status VARCHAR(32),
     create_dt TIMESTAMP ,
     last_update_dt TIMESTAMP ,
     raw_string TEXT

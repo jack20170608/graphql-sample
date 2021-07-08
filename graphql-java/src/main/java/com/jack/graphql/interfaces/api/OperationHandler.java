@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -72,20 +73,13 @@ public class OperationHandler {
     }
 
     @GET
-    @Path("simpleTest")
+    @Path("queryFull")
     @Produces(MediaType.APPLICATION_JSON)
-    public Map<String, Boolean> simpleTest() {
-        Map<String, Boolean> result = Maps.newHashMap();
-        Order o1 = orderCache.get(1L).get();
-        Order o2 = orderCache.get(1L).get();
-        if (o1 == o2) {
-            result.put("equal", true);
-            LOGGER.info("O1 is same reference to O2");
-        } else {
-            result.put("equal", false);
-        }
-        return result;
+    @Description(value = "Query the ", details = "")
+    public RestResponse<List<OrderVO>> queryAll() {
+        return RestResponseHelper.success(orderService.queryAll().subList(0, 20));
     }
+
 
     @GET
     @Path("performanceTest")

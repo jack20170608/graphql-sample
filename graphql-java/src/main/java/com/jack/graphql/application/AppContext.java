@@ -7,7 +7,9 @@ import com.jack.graphql.dao.OrderDao;
 import com.jack.graphql.dao.impl.OrderDaoImpl;
 import com.jack.graphql.service.OrderService;
 import com.jack.graphql.service.impl.OrderServiceImpl;
+import com.jack.graphql.utils.StringUtil;
 import com.typesafe.config.Config;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,11 +35,11 @@ public class AppContext {
 
     private OrderService orderService;
 
-    public void init(){
+    public void init() {
         LOGGER.info("Initing the application context..........");
         boolean flywayEnabled = config.getBoolean("flyway.enabled");
         LOGGER.info("flyway enabled={}", flywayEnabled);
-        if (flywayEnabled){
+        if (flywayEnabled) {
             FlyWayHelper.runFlyway(this);
         }
         dataSourceFactory = PostgresDataSourceFactory.getInstance();
@@ -46,11 +48,16 @@ public class AppContext {
         orderDao = new OrderDaoImpl(dataSourceFactory.getJdbi());
 
         //cache
-        orderCache = new OrderCacheImpl(orderDao);
+        orderCache = new OrderCacheImpl(orderDao, this);
         //query cache
         orderQueryCache = new OrderQueryResultCache();
         //service
         orderService = new OrderServiceImpl(orderDao, orderCache, orderQueryCache);
+    }
+
+    public boolean isLocal() {
+        String env = System.getProperty("ENV");
+        return StringUtils.contains(env, "local");
     }
 
     public Config getConfig() {
