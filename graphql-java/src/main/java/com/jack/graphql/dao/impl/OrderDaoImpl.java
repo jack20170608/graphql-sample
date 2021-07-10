@@ -252,7 +252,7 @@ public class OrderDaoImpl implements OrderDao {
             preparedStatement = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             preparedStatement.setFetchSize(1000);
             preparedStatement.setFetchDirection(ResultSet.FETCH_FORWARD);
-            preparedStatement.setLong(1, 100);
+            preparedStatement.setLong(1, 1000100);
             rs = preparedStatement.executeQuery();
             while (rs.next()) {
                 Order order = OrderBuilder.anOrder()
@@ -267,7 +267,7 @@ public class OrderDaoImpl implements OrderDao {
                     .withRawString(rs.getString("raw_string").split("\\|"))
                     .build();
                 cache.put(order.getId(), order);
-                if (totalSize++ % 1000 == 0) {
+                if (++totalSize % 1000 == 0) {
                     LOGGER.info("Done {}.", totalSize);
                 }
             }

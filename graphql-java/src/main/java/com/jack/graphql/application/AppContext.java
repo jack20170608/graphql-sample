@@ -3,11 +3,12 @@ package com.jack.graphql.application;
 import com.jack.graphql.cache.Cache;
 import com.jack.graphql.cache.OrderCacheImpl;
 import com.jack.graphql.cache.OrderQueryResultCache;
+import com.jack.graphql.dao.InterfaceCodeDao;
 import com.jack.graphql.dao.OrderDao;
+import com.jack.graphql.dao.impl.InterfaceCodeDaoImpl;
 import com.jack.graphql.dao.impl.OrderDaoImpl;
 import com.jack.graphql.service.OrderService;
 import com.jack.graphql.service.impl.OrderServiceImpl;
-import com.jack.graphql.utils.StringUtil;
 import com.typesafe.config.Config;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -29,6 +30,7 @@ public class AppContext {
     private PostgresDataSourceFactory dataSourceFactory = null;
 
     private OrderDao orderDao;
+    private InterfaceCodeDao interfaceCodeDao;
 
     private OrderCacheImpl orderCache;
     private Cache<String, List<Long>> orderQueryCache;
@@ -46,13 +48,15 @@ public class AppContext {
 
         //dao
         orderDao = new OrderDaoImpl(dataSourceFactory.getJdbi());
+        interfaceCodeDao = new InterfaceCodeDaoImpl();
+
 
         //cache
         orderCache = new OrderCacheImpl(orderDao, this);
         //query cache
         orderQueryCache = new OrderQueryResultCache();
         //service
-        orderService = new OrderServiceImpl(orderDao, orderCache, orderQueryCache);
+        orderService = new OrderServiceImpl(orderDao, interfaceCodeDao, orderCache, orderQueryCache);
     }
 
     public boolean isLocal() {

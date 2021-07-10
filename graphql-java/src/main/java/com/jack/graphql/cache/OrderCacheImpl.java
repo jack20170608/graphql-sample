@@ -65,8 +65,8 @@ public class OrderCacheImpl implements Cache<Long, Order> {
             isReady = false;
             clear();
 //            long allDataSize = doRefreshThoughIds();
-//            long allDataSize = doRefreshThoughJdbcStream();
-            long allDataSize = doRefreshThoughJdbiStream();
+            long allDataSize = doRefreshThoughJdbcStream();
+//            long allDataSize = doRefreshThoughJdbiStream();
             LOGGER.info("Done the cache loading with size {}.", allDataSize);
             isReady = true;
         }

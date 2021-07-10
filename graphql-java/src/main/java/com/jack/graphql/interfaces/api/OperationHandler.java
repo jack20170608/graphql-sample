@@ -61,6 +61,24 @@ public class OperationHandler {
         return RestResponseHelper.success(orderService.query(orderQueryDto));
     }
 
+    @GET
+    @Path("incrementalQuery")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Description("")
+    public RestResponse<List<String>> incrementalQuery(@QueryParam("interfaceCode") String interfaceCode, @QueryParam("maxDataSize") int maxDataSize){
+        LOGGER.info("Query info with code {}, maxDataSize {}.", interfaceCode, maxDataSize);
+        return RestResponseHelper.success(orderService.incrementalQuery(interfaceCode, maxDataSize));
+    }
+
+    @PUT
+    @Path("setCounter")
+    @Produces(MediaType.APPLICATION_JSON)
+    public String setCounter(@QueryParam("interfaceCode") String interfaceCode, @QueryParam("newCounter") Long newCounter){
+        LOGGER.info("Update interface code {} 's counter to {}.", interfaceCode, newCounter);
+        int returnCode = orderService.updateCounter(interfaceCode, newCounter);
+        return "success";
+    }
+
 
     @POST
     @Path("queryContent")

@@ -11,7 +11,7 @@ public final class IdGenerator {
 
     private static final AtomicInteger shortInteger = new AtomicInteger(0);
 
-    private static final String DATATIME_PATTERN = "yyyyMMddHHmmssSSS";
+    private static final String DATATIME_PATTERN = "yyyyMMddHHmmss";
 
     private static final String S0 = "0";
 
@@ -19,7 +19,7 @@ public final class IdGenerator {
     public static String getNextId() {
         String time = LocalDateUtils.format(LocalDateTime.now(), DATATIME_PATTERN);
         int intValue = shortInteger.getAndIncrement();
-        if (shortInteger.get() >= 1000000) {
+        if (shortInteger.get() >= 100000) {
             shortInteger.set(0);
         }
         return time.concat(StringUtils.leftPad(Integer.toString(intValue), 5, S0));

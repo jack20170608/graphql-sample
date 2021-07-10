@@ -4,9 +4,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.hazelcast.query.Predicate;
 import com.hazelcast.query.impl.predicates.AndPredicate;
+import com.hazelcast.query.impl.predicates.GreaterLessPredicate;
 import com.hazelcast.query.impl.predicates.InPredicate;
 import com.hazelcast.query.impl.predicates.LikePredicate;
 import com.jack.graphql.cache.Cache;
+import com.jack.graphql.dao.InterfaceCodeDao;
 import com.jack.graphql.dao.OrderDao;
 import com.jack.graphql.domain.Order;
 import com.jack.graphql.domain.OrderField;
@@ -29,15 +31,41 @@ public class OrderServiceImpl implements OrderService {
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderServiceImpl.class);
 
     private final OrderDao orderDao;
+    private final InterfaceCodeDao interfaceCodeDao;
     private final Cache<Long, Order> orderCache;
     private final Cache<String, List<Long>> orderQueryCache;
 
     public OrderServiceImpl(OrderDao orderDao
+        , InterfaceCodeDao interfaceCodeDao
         , Cache<Long, Order> orderCache
         , Cache<String, List<Long>> orderQueryCache) {
         this.orderDao = orderDao;
+        this.interfaceCodeDao = interfaceCodeDao;
         this.orderCache = orderCache;
         this.orderQueryCache = orderQueryCache;
+    }
+
+    @Override
+    public List<String> incrementalQuery(String code, int maxDataSize) {
+        int maxSize = maxDataSize <= 0 || maxDataSize > 1000 ? 100 : maxDataSize;
+        return interfaceCodeDao.getByCode(code).map(i -> {
+            Long counter = i.getCounter();
+            GreaterLessPredicate predicate = new GreaterLessPredicate(OrderField.id.name(), counter, false, false);
+            List<Long> targetKeys = queryAndReturnKeys(predicate);
+            int totalSize = targetKeys.size();
+            LOGGER.info("Total size [{}].", totalSize);
+
+            int startIndex = 0;
+            int endIndex = Math.min(totalSize, maxSize);
+            List<Order> targetOrders = queryByKeys(Sets.newHashSet(targetKeys.subList(startIndex, endIndex)));
+
+            if (!CollectionUtils.isEmpty(targetOrders)) {
+                Long newCounter = targetOrders.get(endIndex - 1).getId();
+                LOGGER.info("New counter = {}.", newCounter);
+                interfaceCodeDao.updateCounter(code, newCounter);
+            }
+            return targetOrders.stream().map(order -> MAPPER.apply(order, i.getOrderFieldList())).map(OrderVO::getContent).collect(Collectors.toList());
+        }).orElse(Lists.newArrayList());
     }
 
     @Override
@@ -76,7 +104,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<Order> queryByKeys(Set<Long> keys){
+    public List<Order> queryByKeys(Set<Long> keys) {
         return orderCache.getNativeCache().getAll(keys).values().stream()
             .sorted(Comparator.comparing(Order::getId))
             .collect(Collectors.toList());
@@ -150,6 +178,11 @@ public class OrderServiceImpl implements OrderService {
             }).orElse(CommonPage.of(queryKey, 0, pageSize, pageNum, new ArrayList<>()));
         }
         return result;
+    }
+
+    @Override
+    public int updateCounter(String code, Long newCounter) {
+        return interfaceCodeDao.updateCounter(code, newCounter);
     }
 
     private List<Predicate<Long, Order>> toPredicate(OrderQueryDto orderQueryDto) {

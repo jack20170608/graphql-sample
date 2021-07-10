@@ -21,10 +21,14 @@ public interface OrderService {
 
     List<Order> query(Predicate predicate);
 
+    List<String> incrementalQuery(String code, int maxDataSize);
+
     List<Long> queryAndReturnKeys(Predicate predicate);
 
     CommonPage<String> queryContentOnly(OrderQueryDto orderQueryDto);
 
     CommonPage<OrderVO> query(OrderQueryDto orderQueryDto);
+
+    int updateCounter(String code, Long newCounter);
 
 }
