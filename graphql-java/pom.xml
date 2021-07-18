@@ -85,7 +85,7 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
-            <version>7.10.0</version>
+            <version>7.11.2</version>
         </dependency>
         <!-- the cache -->
         <dependency>
@@ -132,6 +132,12 @@
             <groupId>com.typesafe</groupId>
             <artifactId>config</artifactId>
             <version>1.2.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sybase</groupId>
+            <artifactId>jconn</artifactId>
+            <version>4</version>
         </dependency>
 
         <!-- the Junit 5 test -->

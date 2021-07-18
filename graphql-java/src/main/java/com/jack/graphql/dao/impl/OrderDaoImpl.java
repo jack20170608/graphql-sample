@@ -37,8 +37,7 @@ public class OrderDaoImpl implements OrderDao {
     public static final Logger LOGGER = LoggerFactory.getLogger(OrderDaoImpl.class);
 
     private static final String INSERT_SQL = " insert into t_order (" +
-        "  id" +
-        ", sequence_no" +
+        " sequence_no" +
         ", customer_id" +
         ", product_id" +
         ", order_dt" +
@@ -47,8 +46,7 @@ public class OrderDaoImpl implements OrderDao {
         ", last_update_dt" +
         ", raw_string " +
         " ) values ( " +
-        " nextval('seq_t_order_id') " +
-        ", :o.sequenceNo " +
+        " :o.sequenceNo " +
         ", :o.customerId " +
         ", :o.productId " +
         ", :o.orderDatetime " +
@@ -127,7 +125,6 @@ public class OrderDaoImpl implements OrderDao {
             rawString[11] = "some dummy comments for " + i;
 
             orderList.add(OrderBuilder.anOrder()
-                .withId(i)
                 .withSequenceNo(sequenceNo)
                 .withCustomerId(customerId)
                 .withProductId(productId)
@@ -167,7 +164,7 @@ public class OrderDaoImpl implements OrderDao {
                 .withRawString(rs.getString("raw_string").split("\\|"))
                 .build();
         });
-//        initData(1000000);
+        initData(100000);
     }
 
     @Override
