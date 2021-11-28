@@ -3,6 +3,7 @@ package com.jack.graphql.application;
 import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import com.jack.graphql.App;
 import com.jack.graphql.cache.OrderCacheImpl;
+import com.jack.graphql.interfaces.api.FilterHandler;
 import com.jack.graphql.interfaces.api.OperationHandler;
 import com.jack.graphql.service.OrderService;
 import io.muserver.HttpsConfigBuilder;
@@ -58,8 +59,9 @@ public class HttpServer {
         OrderService orderService = appContext.getOrderService();
         OrderCacheImpl orderCache = appContext.getOrderCache();
         OperationHandler operationHandler = new OperationHandler(orderService, orderCache);
+        FilterHandler filterHandler = new FilterHandler();
         return RestHandlerBuilder
-            .restHandler(operationHandler)
+            .restHandler(operationHandler, filterHandler)
             .addCustomWriter(new JacksonJaxbJsonProvider())
             .addCustomReader(new JacksonJaxbJsonProvider())
             .withOpenApiHtmlUrl("/api.html")

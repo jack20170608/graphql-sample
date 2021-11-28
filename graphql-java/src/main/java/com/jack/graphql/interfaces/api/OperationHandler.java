@@ -3,6 +3,7 @@ package com.jack.graphql.interfaces.api;
 import com.google.common.collect.Maps;
 import com.jack.graphql.cache.OrderCacheImpl;
 import com.jack.graphql.domain.Order;
+import com.jack.graphql.interfaces.dto.CommonQueryDto;
 import com.jack.graphql.interfaces.dto.OrderQueryDto;
 import com.jack.graphql.interfaces.dto.OrderVO;
 import com.jack.graphql.interfaces.helper.CommonPage;
@@ -148,4 +149,32 @@ public class OperationHandler {
         }
         return RestResponseHelper.success("success");
     }
+
+
+    @GET
+    @Path("initData")
+    @Produces(MediaType.APPLICATION_JSON)
+    public RestResponse<String> testReturnPrediate(@QueryParam("size") int size){
+        try {
+            orderService.initDataWithSize(size);
+        }catch (Throwable t){
+            return RestResponseHelper.failed(t.getMessage());
+        }
+        return RestResponseHelper.success("done");
+    }
+
+
+    @POST
+    @Path("commonQuery")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public RestResponse<String> commonQuery(CommonQueryDto queryDto){
+        try {
+        }catch (Throwable t){
+            return RestResponseHelper.failed(t.getMessage());
+        }
+        return RestResponseHelper.success("done");
+    }
+
 }
+

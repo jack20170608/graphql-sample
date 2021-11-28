@@ -11,20 +11,29 @@ import com.jack.graphql.cache.Cache;
 import com.jack.graphql.dao.InterfaceCodeDao;
 import com.jack.graphql.dao.OrderDao;
 import com.jack.graphql.domain.Order;
+import com.jack.graphql.domain.OrderBuilder;
 import com.jack.graphql.domain.OrderField;
+import com.jack.graphql.domain.Status;
+import com.jack.graphql.interfaces.dto.CommonQueryDto;
 import com.jack.graphql.interfaces.dto.OrderQueryDto;
 import com.jack.graphql.interfaces.dto.OrderVO;
 import com.jack.graphql.interfaces.helper.CommonPage;
 import com.jack.graphql.service.OrderService;
-import com.jack.graphql.utils.CollectionUtils;
-import com.jack.graphql.utils.IdGenerator;
-import com.jack.graphql.utils.StringUtil;
+import com.jack.graphql.utils.*;
+import org.apache.commons.lang3.RandomUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+
+import static com.jack.graphql.dao.impl.OrderDaoImpl.CUSTOMER_TABLE;
+import static com.jack.graphql.dao.impl.OrderDaoImpl.PRODUCT_TABLE;
+import static com.jack.graphql.utils.StringConvertUtils.toStr;
 
 public class OrderServiceImpl implements OrderService {
 
@@ -44,6 +53,69 @@ public class OrderServiceImpl implements OrderService {
         this.orderCache = orderCache;
         this.orderQueryCache = orderQueryCache;
     }
+
+
+    @Override
+    public void initDataWithSize(int dataSize) {
+        orderQueryCache.clear();
+
+        List<Order> orderList = Lists.newArrayList();
+        for (long i = 0; i < dataSize; i++) {
+            String[] rawString = new String[12];
+            String sequenceNo = IdGenerator.getNextId();
+            Long customerId = CUSTOMER_TABLE.get(RandomUtils.nextInt(0, 3));
+            Long productId = PRODUCT_TABLE.get(RandomUtils.nextInt(0, 9));
+            Status status = i % 11 == 0 ? Status.PAY : (i % 3 != 0 ? Status.FINISHED : Status.DELIVERING);
+            LocalDateTime now = LocalDateUtils.plus(LocalDateTime.now(), RandomUtils.nextInt(0, 100) - 100, ChronoUnit.DAYS);
+
+            String nowString = LocalDateUtils.format(now, LocalDateUtils.DATETIME_PATTERN);
+            BigDecimal price = new BigDecimal(RandomUtils.nextInt(1, 1000) / 20);
+            int quantity = RandomUtils.nextInt(1, 100);
+            BigDecimal totalAmount = BigDecimalUtils.multiply(price, new BigDecimal(quantity));
+
+            rawString[0] = toStr(i);
+            rawString[1] = sequenceNo;
+            rawString[2] = toStr(customerId);
+            rawString[3] = toStr(productId);
+            rawString[4] = toStr(price);
+            rawString[5] = toStr(quantity);
+            rawString[6] = toStr(totalAmount);
+            rawString[7] = toStr(nowString);
+            rawString[8] = toStr(nowString);
+            rawString[9] = toStr(nowString);
+            rawString[10] = toStr(status);
+            rawString[11] = "some dummy comments for " + i;
+
+            orderList.add(OrderBuilder.anOrder()
+                .withSequenceNo(sequenceNo)
+                .withCustomerId(customerId)
+                .withProductId(productId)
+                .withOrderDatetime(now)
+                .withOrderStatus(status)
+                .withCreateDt(now)
+                .withLastUpdateDt(now)
+                .withRawString(rawString)
+                .build()
+            );
+
+            if (i % 1000 == 0) {
+                batchInsert(orderList);
+                LOGGER.info("complete {}.", i);
+                orderList.clear();
+            }
+        }
+
+        batchInsert(orderList);
+        orderList.clear();
+
+        orderDao.loadingDataToCache(orderCache);
+    }
+
+    @Override
+    public void batchInsert(List<Order> orders) {
+        orderDao.batchInsert(orders);
+    }
+
 
     @Override
     public List<String> incrementalQuery(String code, int maxDataSize) {
@@ -202,6 +274,7 @@ public class OrderServiceImpl implements OrderService {
         }
         return allPredicates;
     }
+
 
     private static final BiFunction<Order, List<OrderField>, OrderVO> MAPPER = (order, fields) -> OrderVO.builder(order)
         .withContent(order.getByFields(fields))

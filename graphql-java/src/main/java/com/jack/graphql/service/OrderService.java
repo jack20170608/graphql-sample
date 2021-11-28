@@ -12,6 +12,9 @@ import java.util.Set;
 
 public interface OrderService {
 
+    void initDataWithSize(int dataSize);
+
+    void batchInsert(List<Order> orders);
 
     Optional<OrderVO> getById(Long id);
 
@@ -30,5 +33,6 @@ public interface OrderService {
     CommonPage<OrderVO> query(OrderQueryDto orderQueryDto);
 
     int updateCounter(String code, Long newCounter);
+
 
 }
