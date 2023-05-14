@@ -14,7 +14,6 @@ import com.jack.graphql.domain.Order;
 import com.jack.graphql.domain.OrderBuilder;
 import com.jack.graphql.domain.OrderField;
 import com.jack.graphql.domain.Status;
-import com.jack.graphql.interfaces.dto.CommonQueryDto;
 import com.jack.graphql.interfaces.dto.OrderQueryDto;
 import com.jack.graphql.interfaces.dto.OrderVO;
 import com.jack.graphql.interfaces.helper.CommonPage;
@@ -136,7 +135,7 @@ public class OrderServiceImpl implements OrderService {
                 LOGGER.info("New counter = {}.", newCounter);
                 interfaceCodeDao.updateCounter(code, newCounter);
             }
-            return targetOrders.stream().map(order -> MAPPER.apply(order, i.getOrderFieldList())).map(OrderVO::getContent).collect(Collectors.toList());
+            return targetOrders.stream().map(order -> MAPPER.apply(order, i.getOrderFieldList())).map(v -> v.getContent()).collect(Collectors.toList());
         }).orElse(Lists.newArrayList());
     }
 
