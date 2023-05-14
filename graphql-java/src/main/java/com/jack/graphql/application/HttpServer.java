@@ -31,21 +31,23 @@ public class HttpServer {
         AppContext appContext = App.APP_CONTEXT;
         String appName = appContext.getConfig().getString("server.app-name");
 
+        /*
         HttpsConfigBuilder sslContext = HttpsConfigBuilder.httpsConfig()
             .withKeystoreType("JKS")
             .withKeystorePassword("123456")
             .withKeyPassword("123456")
             .withKeystore(new File("C:\\Users\\27528\\Desktop\\tool\\jack007-top-tomcat-0613204832.jks"))
             .withCipherFilter((s, d) -> d);
+         */
 
         int port = appContext.getConfig().getInt("server.port");
         LOGGER.info("Starting the server on port {}..", port);
         long start = System.currentTimeMillis();
 
         MuServer muServer = MuServerBuilder.httpServer()
-            .withHttpsPort(port)
+            .withHttpPort(port)
             .withIdleTimeout(2, TimeUnit.HOURS)
-            .withHttpsConfig(sslContext)
+//            .withHttpsConfig(sslContext)
             .addHandler(context(appName)
                 .addHandler(createRestHandler(appContext))
                 .addHandler(ResourceHandlerBuilder.classpathHandler("/web/swagger-ui"))
